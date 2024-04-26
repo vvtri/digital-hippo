@@ -20,7 +20,7 @@ const createContext = ({ req, res }: CreateExpressContextOptions) => ({
 	res,
 });
 
-export type ExpressContext = inferAsyncReturnType<typeof createContext>
+export type ExpressContext = inferAsyncReturnType<typeof createContext>;
 
 const start = async () => {
 	const payload = await getPayloadClient({
@@ -46,7 +46,9 @@ const start = async () => {
 		payload.logger.info(`Next.js started`);
 
 		app.listen(port, async () => {
-			payload.logger.info(`Nextjs App URL: ${process.env.NEXT_SERVER_URL}`);
+			payload.logger.info(
+				`Nextjs App URL: ${process.env.NEXT_PUBLIC_SERVER_URL}`
+			);
 		});
 	});
 };

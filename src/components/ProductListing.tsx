@@ -37,7 +37,7 @@ export default function ProductListing(props: ProductListingProps) {
 
 	return (
 		<Link
-			href={`/product/${product.id}`}
+			href={`/products/${product.id}`}
 			className={cn('invisible h-full w-full cursor-pointer group/main', {
 				'visible animate-in fade-in': isVisible,
 			})}
