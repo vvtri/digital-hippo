@@ -1,141 +1,119 @@
-'use client'
+'use client';
 
-import { Icons } from '@/components/Icons'
+import { Icons } from '@/components/Icons';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Button,
-  buttonVariants,
-} from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight } from 'lucide-react'
-import Link from 'next/link'
-import { useForm } from 'react-hook-form'
+	AuthCredentialsValidator,
+	TAuthCredentialsValidator,
+} from '@/lib/validators/account-credentials-validator';
+import { trpc } from '@/trpc/client';
+import { toast } from 'sonner';
+import { ZodError } from 'zod';
+import { useRouter } from 'next/navigation';
 
-import {
-  AuthCredentialsValidator,
-  TAuthCredentialsValidator,
-} from '@/lib/validators/account-credentials-validator'
-import { trpc } from '@/trpc/client'
-import { toast } from 'sonner'
-import { ZodError } from 'zod'
-import { useRouter } from 'next/navigation'
+export default function SignUpPage() {
+	const router = useRouter();
 
-const Page = () => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<TAuthCredentialsValidator>({
-    resolver: zodResolver(AuthCredentialsValidator),
-  })
+	const {
+		register,
+		formState: { errors },
+		handleSubmit,
+	} = useForm<TAuthCredentialsValidator>({
+		resolver: zodResolver(AuthCredentialsValidator),
+	});
 
-  const router = useRouter()
+	const { mutate, isLoading } = trpc.auth.createPayloadUser.useMutation({
+		onError(error) {
+			if (error.data?.code === 'CONFLICT')
+				return toast.error(`The email is already in use. Sign in instead?`);
 
-  const { mutate, isLoading } =
-    trpc.auth.createPayloadUser.useMutation({
-      onError: (err) => {
-        if (err.data?.code === 'CONFLICT') {
-          toast.error(
-            'This email is already in use. Sign in instead?'
-          )
+			if (error instanceof ZodError) {
+				return toast.error(error.issues[0].message);
+			}
 
-          return
-        }
+			return toast.error(`Something went wrong. Please try again.`);
+		},
 
-        if (err instanceof ZodError) {
-          toast.error(err.issues[0].message)
+		onSuccess({ sentToEmail }) {
+			toast.success(`Verification email is already sent to ${sentToEmail}.`);
+			router.push(`/verify-email?to=${sentToEmail}`);
+		},
+	});
 
-          return
-        }
+	const onSubmit = (data: TAuthCredentialsValidator) => {
+		mutate(data);
+	};
 
-        toast.error(
-          'Something went wrong. Please try again.'
-        )
-      },
-      onSuccess: ({ sentToEmail }) => {
-        toast.success(
-          `Verification email sent to ${sentToEmail}.`
-        )
-        router.push('/verify-email?to=' + sentToEmail)
-      },
-    })
+	return (
+		<div className='container relative pt-20 flex items-center justify-center flex-col lg:px-0'>
+			<div className='mx-auto flex items-center justify-center w-full flex-col space-y-6 sm:max-w-[22rem]'>
+				<div className='flex flex-col items-center justify-center space-y-2  text-center'>
+					<Icons.logo className='w-20 h-20' />
+					<h1 className='text-2xl font-bold'>Create an account</h1>
 
-  const onSubmit = ({
-    email,
-    password,
-  }: TAuthCredentialsValidator) => {
-    mutate({ email, password })
-  }
+					<Link
+						href='/sign-in'
+						className={buttonVariants({
+							variant: 'link',
+							className: 'gap-1.5',
+						})}
+					>
+						Already have an account? Sign-in
+						<ArrowRight className='h-4 w-4' />
+					</Link>
+				</div>
 
-  return (
-    <>
-      <div className='container relative flex pt-20 flex-col items-center justify-center lg:px-0'>
-        <div className='mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]'>
-          <div className='flex flex-col items-center space-y-2 text-center'>
-            <Icons.logo className='h-20 w-20' />
-            <h1 className='text-2xl font-semibold tracking-tight'>
-              Create an account
-            </h1>
+				<div className='grid gap-6 w-full'>
+					<form onSubmit={handleSubmit(onSubmit)}>
+						<div className='grid gap-2'>
+							<div className='grid gap-2 py-2'>
+								<Label htmlFor='email'>Email</Label>
+								<Input
+									{...register('email')}
+									id='email'
+									placeholder='you@example.com'
+									className={cn({
+										'focus-visible:ring-red-500': errors.email,
+									})}
+								/>
 
-            <Link
-              className={buttonVariants({
-                variant: 'link',
-                className: 'gap-1.5',
-              })}
-              href='/sign-in'>
-              Already have an account? Sign-in
-              <ArrowRight className='h-4 w-4' />
-            </Link>
-          </div>
+								{errors.email && (
+									<p className='text-sm text-red-500'>{errors.email.message}</p>
+								)}
+							</div>
 
-          <div className='grid gap-6'>
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <div className='grid gap-2'>
-                <div className='grid gap-1 py-2'>
-                  <Label htmlFor='email'>Email</Label>
-                  <Input
-                    {...register('email')}
-                    className={cn({
-                      'focus-visible:ring-red-500':
-                        errors.email,
-                    })}
-                    placeholder='you@example.com'
-                  />
-                  {errors?.email && (
-                    <p className='text-sm text-red-500'>
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
+							<div className='grid gap-2 py-2'>
+								<Label htmlFor='password'>Password</Label>
+								<Input
+									{...register('password')}
+									id='password'
+									type='password'
+									placeholder='password'
+									className={cn({
+										'focus-visible:ring-red-500': errors.password,
+									})}
+								/>
 
-                <div className='grid gap-1 py-2'>
-                  <Label htmlFor='password'>Password</Label>
-                  <Input
-                    {...register('password')}
-                    type='password'
-                    className={cn({
-                      'focus-visible:ring-red-500':
-                        errors.password,
-                    })}
-                    placeholder='Password'
-                  />
-                  {errors?.password && (
-                    <p className='text-sm text-red-500'>
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
+								{errors.password && (
+									<p className='text-sm text-red-500'>
+										{errors.password.message}
+									</p>
+								)}
+							</div>
 
-                <Button>Sign up</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </>
-  )
+							<Button>Sign up</Button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	);
 }
-
-export default Page

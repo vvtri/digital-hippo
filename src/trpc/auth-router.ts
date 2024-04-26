@@ -1,80 +1,70 @@
-import { AuthCredentialsValidator } from '../lib/validators/account-credentials-validator'
-import { publicProcedure, router } from './trpc'
-import { getPayloadClient } from '../get-payload'
-import { TRPCError } from '@trpc/server'
-import { z } from 'zod'
+import { getPayloadClient } from '../get-payload';
+import { AuthCredentialsValidator } from '../lib/validators/account-credentials-validator';
+import { TRPCError } from '@trpc/server';
+import { publicProcedure, router } from './trpc';
+import { z } from 'zod';
 
 export const authRouter = router({
-  createPayloadUser: publicProcedure
-    .input(AuthCredentialsValidator)
-    .mutation(async ({ input }) => {
-      const { email, password } = input
-      const payload = await getPayloadClient()
+	createPayloadUser: publicProcedure
+		.input(AuthCredentialsValidator)
+		.mutation(async ({ input }) => {
+			const { email, password } = input;
+			const payload = await getPayloadClient();
 
-      // check if user already exists
-      const { docs: users } = await payload.find({
-        collection: 'users',
-        where: {
-          email: {
-            equals: email,
-          },
-        },
-      })
+			const { docs: users } = await payload.find({
+				collection: 'users',
+				where: {
+					email: {
+						equals: email,
+					},
+				},
+				limit: 1,
+			});
 
-      if (users.length !== 0)
-        throw new TRPCError({ code: 'CONFLICT' })
+			if (users.length !== 0) throw new TRPCError({ code: 'CONFLICT' });
 
-      await payload.create({
-        collection: 'users',
-        data: {
-          email,
-          password,
-          role: 'user',
-        },
-      })
+			const user = await payload.create({
+				collection: 'users',
+				data: { email, password, role: 'user' },
+			});
 
-      return { success: true, sentToEmail: email }
-    }),
+			return { success: true, sentToEmail: email };
+		}),
 
-  verifyEmail: publicProcedure
-    .input(z.object({ token: z.string() }))
-    .query(async ({ input }) => {
-      const { token } = input
+	verifyEmail: publicProcedure
+		.input(z.object({ token: z.string().min(1) }))
+		.query(async ({ input }) => {
+			const token = input.token;
+			const payload = await getPayloadClient();
 
-      const payload = await getPayloadClient()
+			const isVerified = await payload.verifyEmail({
+				collection: 'users',
+				token,
+			});
 
-      const isVerified = await payload.verifyEmail({
-        collection: 'users',
-        token,
-      })
+			if (!isVerified) throw new TRPCError({ code: 'UNAUTHORIZED' });
 
-      if (!isVerified)
-        throw new TRPCError({ code: 'UNAUTHORIZED' })
+			return { success: true, isVerified };
+		}),
 
-      return { success: true }
-    }),
+	signIn: publicProcedure
+		.input(AuthCredentialsValidator)
+		.mutation(async ({ ctx, input }) => {
+			const { email, password } = input;
+			const { req, res } = ctx;
 
-  signIn: publicProcedure
-    .input(AuthCredentialsValidator)
-    .mutation(async ({ input, ctx }) => {
-      const { email, password } = input
-      const { res } = ctx
+			const payload = await getPayloadClient();
 
-      const payload = await getPayloadClient()
+			try {
+				await payload.login({
+					collection: 'users',
+					data: { email, password },
+					res,
+				});
 
-      try {
-        await payload.login({
-          collection: 'users',
-          data: {
-            email,
-            password,
-          },
-          res,
-        })
-
-        return { success: true }
-      } catch (err) {
-        throw new TRPCError({ code: 'UNAUTHORIZED' })
-      }
-    }),
-})
+				return { success: true };
+			} catch (error) {
+				throw new TRPCError({ code: 'UNAUTHORIZED' });
+			}
+		}),
+});
