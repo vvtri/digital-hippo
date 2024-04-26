@@ -1,8 +1,10 @@
+import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import './globals.css';
 import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
+import Providers from '@/components/Providers';
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,10 +24,14 @@ export default function RootLayout({
 				className={cn('relative h-full font-sans antialiased', inter.className)}
 			>
 				<main className='relative min-h-screen flex flex-col'>
-					<Navbar />
-					<div className='flex-grow flex-1'>{children}</div>
-					<div className='h-52 w-10'></div>
+					<Providers>
+						<Navbar />
+						<div className='flex-grow flex-1'>{children}</div>
+						<div className='h-52 w-10'></div>
+					</Providers>
 				</main>
+
+				<Toaster position='top-right' richColors theme='system' closeButton />
 			</body>
 		</html>
 	);
