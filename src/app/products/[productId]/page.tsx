@@ -1,10 +1,13 @@
+import AddToCartButton from '@/components/AddToCartButton';
+import ImageSlider from '@/components/ImageSlider';
 import MaxWidthWrapper from '@/components/MaxWidthWrapper';
+import ProductReel from '@/components/ProductReel';
 import { PRODUCT_CATEGORIES } from '@/config';
 import { getPayloadClient } from '@/get-payload';
 import { formatPrice } from '@/lib/utils';
+import { Check, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import React from 'react';
 
 type ProductDetailPageProps = {
 	params: {
@@ -44,6 +47,9 @@ export default async function ProductDetailPage({
 	const label = PRODUCT_CATEGORIES.find(
 		(item) => item.value === product.category
 	)?.label;
+	const validUrls = product.images
+		.map(({ image }) => (typeof image === 'string' ? image : image.url))
+		.filter(Boolean) as string[];
 
 	return (
 		<MaxWidthWrapper className='bg-white'>
@@ -92,10 +98,52 @@ export default async function ProductDetailPage({
 									{label}
 								</p>
 							</div>
+
+							<div className='mt-4 space-y-6'>
+								<p className='text-base text-muted-foreground'>
+									{product.description}
+								</p>
+							</div>
+
+							<div className='mt-6 flex'>
+								<Check className='w-6 h-6 flex-shrink-0 text-green-500' />
+								<p className='ml-2 text-sm text-muted-foreground'>
+									Eligible for instant delivery
+								</p>
+							</div>
 						</section>
+					</div>
+
+					<div className='mt-10 lg:col-start-2 lg:row-span-2 lg:mt-0 lg:self-center'>
+						<div className='aspect-square rounded-lg'>
+							<ImageSlider urls={validUrls} />
+						</div>
+					</div>
+
+					<div className='mt-10 lg:col-start-1 lg:row-start-2 lg:max-w-lg lg:self-start'>
+						<div>
+							<div className='mt-10'>
+								<AddToCartButton product={product} />
+							</div>
+							<div className='mt-6 text-center'>
+								<div className='group inline-flex text-sm font-medium'>
+									<Shield className='w-5 h-5 mr-2 flex-shrink-0 text-gray-400' />
+									<span className='text-muted-foreground hover:text-gray-700'>
+										30 Days Guarantee
+									</span>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
+
+			<ProductReel
+				href='/products'
+				query={{ category: product.category, limit: 4 }}
+				title={`Similar ${label}`}
+				subtitle={`Browse similar high-quality ${label} just like '${product.name}'`}
+			/>
 		</MaxWidthWrapper>
 	);
 }

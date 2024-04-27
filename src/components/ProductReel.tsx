@@ -1,3 +1,5 @@
+'use client';
+
 import { TQueryValidator } from '@/lib/validators/query-validator';
 import { Product } from '@/payload-types';
 import { trpc } from '@/trpc/client';
@@ -67,7 +69,11 @@ export default function ProductReel(props: ProductReelProps) {
 				<div className='flex w-full mt-6 items-center'>
 					<div className='w-full grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-4  lg:gap-x-8'>
 						{map.map((product, i) => (
-							<ProductListing key={i} product={product} index={i} />
+							<ProductListing
+								key={product?.id || i}
+								product={product}
+								index={i}
+							/>
 						))}
 					</div>
 				</div>
